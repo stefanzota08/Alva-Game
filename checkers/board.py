@@ -12,7 +12,12 @@ class Board:
         self.create_board()
     
     def draw_squares(self, win):
+        pygame.init()
         win.fill(BLACK)
+        myfont = pygame.font.SysFont("monospace", 16)
+        disclaimertext = myfont.render("Copyright, 2013, Not Really Working Lamp Productions.", True, (0, 0, 0))
+        win.blit(disclaimertext, (5, 480))
+        print('text added')
         for row in range(ROWS + 1):
             for col in range(COLS + 1):
                 pygame.draw.rect(win, WHITE, (row * (SQUARE_SIZE + 1), col * (SQUARE_SIZE + 1), SQUARE_SIZE, SQUARE_SIZE))
@@ -101,6 +106,20 @@ class Board:
                 piece = self.board[row][col]
                 piece.outline_color = GREY
 
+    def update_UI(self):
+        for row in range(ROWS):
+            for col in range(COLS):
+                piece = self.board[row][col]
+                if self.piece_map[row][col] == 1:
+                    piece.color = WHITE
+                    piece.PADDING = 30
+                elif self.piece_map[row][col] == 2:
+                    piece.color = BLACK
+                    piece.PADDING = 30
+                elif self.piece_map[row][col] == 0:
+                    piece.color = GREY
+                    piece.PADDING = 100
+
     def remove(self, pieces):
         for piece in pieces:
             self.board[piece.row][piece.col] = 0
@@ -117,21 +136,7 @@ class Board:
             return RED
         
         return None 
-    
-    def get_valid_moves(self, piece):
-        moves = {}
-        left = piece.col - 1
-        right = piece.col + 1
-        row = piece.row
 
-        if piece.color == RED or piece.king:
-            moves.update(self._traverse_left(row -1, max(row-3, -1), -1, piece.color, left))
-            moves.update(self._traverse_right(row -1, max(row-3, -1), -1, piece.color, right))
-        if piece.color == WHITE or piece.king:
-            moves.update(self._traverse_left(row +1, min(row+3, ROWS), 1, piece.color, left))
-            moves.update(self._traverse_right(row +1, min(row+3, ROWS), 1, piece.color, right))
-    
-        return moves
 
     def _traverse_left(self, start, stop, step, color, left, skipped=[]):
         moves = {}

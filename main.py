@@ -36,9 +36,13 @@ def main():
                 row, col = get_row_col_from_mouse(pos)
                 game.select(row, col)
 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    game.reset()
 
         game.update()
     
     pygame.quit()
+
 
 main()
