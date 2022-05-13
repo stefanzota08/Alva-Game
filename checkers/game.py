@@ -9,7 +9,6 @@ class Game:
     def __init__(self, win):
         self._init()
         self.win = win
-
     
     def update(self):
         self.board.draw(self.win)
@@ -25,6 +24,8 @@ class Game:
         self.p2_pieces_left = 34
         self.p2_pieces_captured = 0
         self.last_captured_nr = 0
+
+
 
 
     def winner(self):

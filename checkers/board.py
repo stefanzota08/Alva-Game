@@ -12,7 +12,12 @@ class Board:
         self.create_board()
     
     def draw_squares(self, win):
+        pygame.init()
         win.fill(BLACK)
+        myfont = pygame.font.SysFont("monospace", 16)
+        disclaimertext = myfont.render("Copyright, 2013, Not Really Working Lamp Productions.", True, (0, 0, 0))
+        win.blit(disclaimertext, (5, 480))
+        print('text added')
         for row in range(ROWS + 1):
             for col in range(COLS + 1):
                 pygame.draw.rect(win, WHITE, (row * (SQUARE_SIZE + 1), col * (SQUARE_SIZE + 1), SQUARE_SIZE, SQUARE_SIZE))
@@ -125,4 +130,3 @@ class Board:
                 elif self.piece_map[row][col] == 0:
                     piece.color = GREY
                     piece.PADDING = 100
-
