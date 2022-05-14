@@ -1,5 +1,5 @@
 import pygame
-
+from copy import deepcopy
 from .constants import RED, WHITE, BLUE, BLACK, GREEN, SQUARE_SIZE, GREY
 from checkers.board import Board
 
@@ -48,11 +48,14 @@ class Game:
         self.board.select(row, col)
 
     def get_board(self):
-        print(self.board.piece_map)
         return self.board
 
     def ai_move(self, board):
-        self.board.piece_map = board
+        # self.change_turn()
+        print('board-ul returnat de minmax')
+        board.print_map()
+        self.board.update_piece_map(board.piece_map)
+        self.board.update_UI()
 
     def get_turn(self):
         return self.board.turn

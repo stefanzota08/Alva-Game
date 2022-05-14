@@ -104,7 +104,8 @@ class Board:
                     break
 
         possible_moves_copy = copy.deepcopy(self.possible_moves)
-        return possible_moves_copy
+        capturing_moves_copy = copy.deepcopy(self.capturing_moves)
+        return possible_moves_copy, capturing_moves_copy
 
     def get_piece(self, row, col):
         return self.board[row][col]
@@ -148,11 +149,11 @@ class Board:
         pieces = []
         for row_index in range(0, ROWS):
             for col_index in range(0, COLS):
-                if self.board[row_index][col_index] == turn:
+                if self.piece_map[row_index][col_index] == turn:
                     pieces.append((row_index, col_index))
         return pieces
     
-    def evaluation(self):
+    def evaluate(self):
         return self.p2_pieces_left - self.p1_pieces_left
     
     def winner(self):
@@ -247,40 +248,46 @@ class Board:
     def spawn_piece(self, row, col):
         self.piece_map[row][col] = self.turn
         self.cant_select_pieces = False
-        self.change_turn()
-        
-    def move_selected_piece(self, row, col):
+
+    def move_selected_piece(self, row, col, turn):
         # daca avem mutari in care putem captura, si aceasta nu e una din ele, dam return
         if (row, col) not in self.capturing_moves and len(self.capturing_moves) > 0:
             return
         if (row, col) in self.possible_moves:  # daca miscarea este posibila, mutam piesa
             self.piece_map[self.selected[0]][self.selected[1]] = 0
-            self.piece_map[row][col] = self.turn
+            self.piece_map[row][col] = turn
             captured = self.capture_pieces(row, col)
             if captured:  # daca a capturat, se termina tura
-                self.get_possible_moves(row, col, self.turn)
+                self.get_possible_moves(row, col, turn)
                 if len(self.capturing_moves) == 0:
                     self.remove_highlight()
                     self.change_turn()
             else:  # daca nu a capturat nimic, inseamna ca a mutat doar o casuta, deci mai poate sa si adauge o piesa
                 self.remove_highlight()
                 self.cant_select_pieces = True  # nu poate selecta alte piese, poate decat plasa o piesa
+                return True  # returnam True daca nu a capturat nimic
         else:
             self.remove_highlight()
-            
+        return None
+
+
     def select(self, row, col):
         if self.piece_map[row][col] == self.turn:  # testam daca piesa aleasa este a playerului curent
             if not self.cant_select_pieces:  # testam daca avem voie sa selectam piese
                 self.highlight_piece(row, col)
         elif self.piece_map[row][col] == 0:  # daca este liber locul selectat
             if self.selected:  # daca avem ceva selectat
-                self.move_selected_piece(row, col)
+                self.move_selected_piece(row, col, self.turn)
             else:
                 self.spawn_piece(row, col)
-        self.print_map()
+                self.change_turn()
+        # self.print_map()
         self.update_UI()
-        print('we have ', self.p1_pieces_left, ' pieces left')
-        print('the opponent has ', self.p2_pieces_left, ' pieces left')
+        # print('we have ', self.p1_pieces_left, ' pieces left')
+        # print('the opponent has ', self.p2_pieces_left, ' pieces left')
 
     def get_piece_map(self):
         return self.piece_map
+
+    def update_piece_map(self, piece_map):
+        self.piece_map = copy.deepcopy(piece_map)

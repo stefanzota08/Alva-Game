@@ -27,8 +27,13 @@ def main():
     while run:
         clock.tick(FPS)
 
-        if game.board.p2_pieces_left == 1:
-            value, new_board = minimax(game.get_board(), 4, 2, game)
+        if game.board.p2_pieces_left <= 2 and game.get_turn() == 2:
+            print('apelarea in main')
+            print('p2 pieces left: ', game.board.p2_pieces_left)
+            print('turn: ', game.get_turn())
+            game.board.print_map()
+            value, new_board = minimax(game.get_board(), 1, 2, game)
+            game.board.turn = 1
             game.ai_move(new_board)
 
         if game.winner() is not None:
