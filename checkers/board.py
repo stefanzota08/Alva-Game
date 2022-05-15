@@ -1,12 +1,14 @@
-import copy
 
+import copy
 import pygame
+import math
 pygame.init()
-from .constants import BLACK, SQUARE_SIZE, WHITE, GREY, ROWS, COLS, GREEN, RED
+from .constants import BLACK, SQUARE_SIZE, WHITE, GREY, ROWS, COLS, GREEN, RED, WIDTH, HEIGHT
 from .piece import Piece
 
 class Board:
     def __init__(self):
+        self.player_time = 0
         self.board = []
         self.piece_map = [[0 for _ in range(COLS)] for _ in range(ROWS)]
         self.possible_moves = []
@@ -14,9 +16,11 @@ class Board:
         self.turn = 1
         self.selected = None
         self.cant_select_pieces = False
-        self.p1_pieces_left = 4
+        self.p1_pieces_left = 34
+        self.p1_pieces_in_hand = 34
         self.p1_pieces_captured = 0
-        self.p2_pieces_left = 4
+        self.p2_pieces_left = 34
+        self.p2_pieces_in_hand = 34
         self.p2_pieces_captured = 0
         self.last_captured_nr = 0
         self.create_board()
@@ -24,12 +28,57 @@ class Board:
     def draw_squares(self, win):
         pygame.init()
         win.fill(BLACK)
-        myfont = pygame.font.SysFont("monospace", 16)
-        disclaimertext = myfont.render("Copyright, 2013, Not Really Working Lamp Productions.", True, (0, 0, 0))
-        win.blit(disclaimertext, (5, 480))
+        # myfont = pygame.font.SysFont("monospace", 16)
+        # disclaimertext = myfont.render("Copyright, 2013, Not Really Working Lamp Productions.", True, (0, 0, 0))
+        # win.blit(disclaimertext, (5, 480))
         for row in range(ROWS + 1):
             for col in range(COLS + 1):
                 pygame.draw.rect(win, WHITE, (row * (SQUARE_SIZE + 1), col * (SQUARE_SIZE + 1), SQUARE_SIZE, SQUARE_SIZE))
+
+    def show_turn_on_screen(self, win):
+        myfont = pygame.font.SysFont("arial", 16)
+        if self.turn == 1:
+            text = myfont.render("WHITE MOVES", True, (0, 0, 0))
+        else:
+            text = myfont.render("BLACK MOVES", True, (0, 0, 0))
+        dreptunghi = pygame.Rect((SQUARE_SIZE, (COLS + 1) * SQUARE_SIZE + 30, SQUARE_SIZE * 2, SQUARE_SIZE // 2))
+
+        # aici centram textul
+        dreptunghiText = text.get_rect(center=dreptunghi.center)
+        pygame.draw.rect(win, WHITE, dreptunghi)
+        win.blit(text, dreptunghiText)
+
+    def show_nr_of_pieces_on_screen(self, win):
+        myfont = pygame.font.SysFont("arial", 16)
+        text_white = myfont.render("White pieces left:" + str(self.p1_pieces_left), True, (0, 0, 0))
+        text_black = myfont.render("Black pieces left:" + str(self.p2_pieces_left), True, (0, 0, 0))
+
+        dreptunghi_white = pygame.Rect(350, 930, SQUARE_SIZE * 2, SQUARE_SIZE // 2)
+        dreptunghi_black = pygame.Rect(600, 930, SQUARE_SIZE * 2, SQUARE_SIZE // 2)
+
+        # aici centram textul
+        dreptunghi_text_white = text_white.get_rect(center=dreptunghi_white.center)
+        dreptunghi_text_black = text_black.get_rect(center=dreptunghi_black.center)
+        pygame.draw.rect(win, WHITE, dreptunghi_white)
+        pygame.draw.rect(win, WHITE, dreptunghi_black)
+        win.blit(text_white, dreptunghi_text_white)
+        win.blit(text_black, dreptunghi_text_black)
+
+    def show_winner(self, win, winner):
+        pygame.init()
+        win.fill(BLACK)
+        myfont = pygame.font.SysFont("arial", 50)
+        if winner == 1:
+            win.fill(WHITE)
+            text = myfont.render("WHITE WON", True, (0, 0, 0))
+        else:
+            text = myfont.render("BLACK WON", True, (255, 255, 255))
+        dreptunghi = pygame.Rect(0, 0, WIDTH, HEIGHT)
+
+        # aici centram textul
+        dreptunghiText = text.get_rect(center=dreptunghi.center)
+        win.blit(text, dreptunghiText)
+        self.turn = 3
 
     def print_map(self):
         for line in self.piece_map:
@@ -117,13 +166,17 @@ class Board:
             for col in range(COLS):
                 self.board[row].append(Piece(row, col, GREY))
         
-    def draw(self, win):
+    def draw(self, win, winner):
         self.draw_squares(win)
+        self.show_turn_on_screen(win)
+        self.show_nr_of_pieces_on_screen(win)
         for row in range(ROWS):
             for col in range(COLS):
                 piece = self.board[row][col]
                 if piece != 0:
                     piece.draw(win)
+        if winner:
+            self.show_winner(win, winner)
 
     def clear_selection(self):
         for row in range(ROWS):
@@ -144,6 +197,10 @@ class Board:
                 elif self.piece_map[row][col] == 0:
                     piece.color = GREY
                     piece.PADDING = 100
+                elif self.piece_map[row][col] == '#':
+                    piece.color = GREEN
+                    piece.PADDING = 40
+                    self.piece_map[row][col] = 0
 
     def get_all_pieces(self, turn):
         pieces = []
@@ -153,14 +210,51 @@ class Board:
                     pieces.append((row_index, col_index))
         return pieces
     
-    def evaluate(self):
+    def evaluate(self, turn):
         return self.p2_pieces_left - self.p1_pieces_left
-    
+
+    def evaluate_2(self, turn):
+        return (self.p2_pieces_left - self.p1_pieces_left) * (self.p2_pieces_in_hand - self.p1_pieces_in_hand)
+
+    def evaluate_3(self, turn):
+        pieces = self.get_all_pieces(turn)
+        if turn == 1:
+            opp = self.get_all_pieces(2)
+        else:
+            opp = self.get_all_pieces(1)
+
+        total_dist = 0
+        nr = 0
+        for piece in pieces:
+            for opp_piece in opp:
+                dist = math.dist(piece, opp_piece)
+                total_dist += dist
+                nr += 1
+
+        total_dist = total_dist / nr
+
+        return (self.p2_pieces_left - self.p1_pieces_left) * (self.p2_pieces_in_hand - self.p1_pieces_in_hand) * (total_dist * (-1))
+
     def winner(self):
         if self.p1_pieces_left == 0:
             return 'PLAYER 2 WON'
         if self.p2_pieces_left == 0:
             return 'PLAYER 1 WON'
+
+    def highlight_valid_moves(self):
+        for row in range(ROWS):
+            for col in range(COLS):
+                if self.piece_map[row][col] == '#':
+                    self.piece_map[row][col] = 0
+
+        if len(self.capturing_moves) > 0:
+            for move in self.capturing_moves:
+                self.piece_map[move[0]][move[1]] = '#'
+        else:
+            for move in self.possible_moves:
+                self.piece_map[move[0]][move[1]] = '#'
+
+
 
     def highlight_piece(self, row, col):
         self.selected = (row, col)
@@ -171,8 +265,9 @@ class Board:
         else:
             selected_piece.outline_color = RED
         self.get_possible_moves(row, col, self.turn)
-        print('possible moves: ', self.possible_moves)
-        print('capturing moves: ', self.capturing_moves)
+        self.highlight_valid_moves()
+        # print('possible moves: ', self.possible_moves)
+        # print('capturing moves: ', self.capturing_moves)
         
     def remove_highlight(self):
         selected_piece = self.get_piece(self.selected[0], self.selected[1])
@@ -229,12 +324,14 @@ class Board:
                 if self.turn == 1:
                     # daca este randul nostru, ne recuperam piesele pierdute runda anterioara
                     # si le scadem din cele capturate de adversar
+                    self.p1_pieces_in_hand += last_captured
                     self.p1_pieces_left += last_captured
                     self.p2_pieces_captured -= last_captured
                 else:
                     # daca este randul adversarului, ii returnam piesele pierdute runda anterioara
                     # si le scadem din cele capturate de noi
                     self.p1_pieces_captured -= last_captured
+                    self.p2_pieces_in_hand += last_captured
                     self.p2_pieces_left += last_captured
 
         return captured
@@ -244,10 +341,21 @@ class Board:
             self.turn = 2
         else:
             self.turn = 1
-    
+
     def spawn_piece(self, row, col):
+        if self.turn == 1:
+            if self.p1_pieces_in_hand > 0:
+                self.p1_pieces_in_hand -= 1  # daca mai avem piese in mana, scadem nr si spawnam
+            else:
+                return False  # daca nu mai avem piese de spawnat, nu putem spawna
+        else:
+            if self.p2_pieces_in_hand > 0:
+                self.p2_pieces_in_hand -= 1  # daca mai avem piese in mana, scadem nr si spawnam
+            else:
+                return False  # daca nu mai avem piese de spawnat, nu putem spawna
         self.piece_map[row][col] = self.turn
         self.cant_select_pieces = False
+        return True
 
     def move_selected_piece(self, row, col, turn):
         # daca avem mutari in care putem captura, si aceasta nu e una din ele, dam return
@@ -265,10 +373,14 @@ class Board:
             else:  # daca nu a capturat nimic, inseamna ca a mutat doar o casuta, deci mai poate sa si adauge o piesa
                 self.remove_highlight()
                 self.cant_select_pieces = True  # nu poate selecta alte piese, poate decat plasa o piesa
+                if (turn == 1 and self.p1_pieces_in_hand == 0) or (turn == 2 and self.p2_pieces_in_hand == 0):
+                    self.change_turn()
+                    self.cant_select_pieces = False
                 return True  # returnam True daca nu a capturat nimic
         else:
             self.remove_highlight()
         return None
+
 
 
     def select(self, row, col):
@@ -278,10 +390,11 @@ class Board:
         elif self.piece_map[row][col] == 0:  # daca este liber locul selectat
             if self.selected:  # daca avem ceva selectat
                 self.move_selected_piece(row, col, self.turn)
+                self.print_map()
             else:
-                self.spawn_piece(row, col)
-                self.change_turn()
-        # self.print_map()
+                if self.spawn_piece(row, col):  # daca returneaza True, am spawnat deci schimbam randul
+                    self.print_map()
+                    self.change_turn()
         self.update_UI()
         # print('we have ', self.p1_pieces_left, ' pieces left')
         # print('the opponent has ', self.p2_pieces_left, ' pieces left')
@@ -289,5 +402,19 @@ class Board:
     def get_piece_map(self):
         return self.piece_map
 
-    def update_piece_map(self, piece_map):
-        self.piece_map = copy.deepcopy(piece_map)
+    def update_stats(self, aux_board):
+        self.piece_map = copy.deepcopy(aux_board.piece_map)
+        self.p1_pieces_in_hand = aux_board.p1_pieces_in_hand
+        self.p2_pieces_in_hand = aux_board.p2_pieces_in_hand
+        self.p1_pieces_left = aux_board.p1_pieces_left
+        self.p2_pieces_left = aux_board.p2_pieces_left
+        self.p1_pieces_captured = aux_board.p1_pieces_captured
+        self.p2_pieces_captured = aux_board.p2_pieces_captured
+        self.last_captured_nr = aux_board.last_captured_nr
+        self.print_map()
+
+    def has_pieces_in_hand(self, turn):
+        if turn == 1:
+            return self.p1_pieces_in_hand > 0
+        else:
+            return self.p2_pieces_in_hand > 0

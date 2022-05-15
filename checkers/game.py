@@ -9,9 +9,9 @@ class Game:
     def __init__(self, win):
         self._init()
         self.win = win
-    
+
     def update(self):
-        self.board.draw(self.win)
+        self.board.draw(self.win, self.winner())
         pygame.display.update()
 
     def _init(self):
@@ -19,9 +19,9 @@ class Game:
 
     def winner(self):
         if self.board.p1_pieces_left == 0:
-            return 'PLAYER 2 WON'
+            return 2
         if self.board.p2_pieces_left == 0:
-            return 'PLAYER 1 WON'
+            return 1
 
     def reset(self):
         self._init()
@@ -41,8 +41,8 @@ class Game:
     def spawn_piece(self, row, col):
         self.board.spawn_piece(row, col)
 
-    def move_selected_piece(self, row, col):
-        self.board.move_selected_piece(row, col)
+    def move_selected_piece(self, row, col, turn):
+        self.board.move_selected_piece(row, col, turn)
 
     def select(self, row, col):
         self.board.select(row, col)
@@ -51,11 +51,12 @@ class Game:
         return self.board
 
     def ai_move(self, board):
-        # self.change_turn()
-        print('board-ul returnat de minmax')
-        board.print_map()
-        self.board.update_piece_map(board.piece_map)
-        self.board.update_UI()
+        if not isinstance(board, list):
+            self.change_turn()
+            self.board.update_stats(board)
+            self.board.update_UI()
+        else:
+            self.winner()
 
     def get_turn(self):
         return self.board.turn
